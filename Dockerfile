@@ -32,6 +32,10 @@ RUN cp .env.example .env
 # Generate app key
 RUN php artisan key:generate
 
+# Create SQLite database
+RUN touch /var/www/html/database/database.sqlite \
+    && chown www-data:www-data /var/www/html/database/database.sqlite
+
 EXPOSE 80
 
-CMD ["apache2-foreground"]
+CMD bash -c "php artisan migrate --force --seed && apache2-foreground"
