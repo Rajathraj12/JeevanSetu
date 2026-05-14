@@ -63,7 +63,7 @@ RUN sed -i 's|/var/www/html|/var/www/html/public|g' /etc/apache2/sites-available
     && a2enmod rewrite
 
 # Create deployment entrypoint script
-RUN printf '#!/bin/bash\nset -e\nphp artisan migrate --force\nphp artisan config:cache\nphp artisan route:cache\nphp artisan view:cache\napache2-foreground\n' > /usr/local/bin/deploy.sh \
+RUN printf '#!/bin/bash\nset -e\nphp artisan migrate --force --seed\nphp artisan config:cache\nphp artisan route:cache\nphp artisan view:cache\napache2-foreground\n' > /usr/local/bin/deploy.sh \
     && chmod +x /usr/local/bin/deploy.sh
 
 EXPOSE 80

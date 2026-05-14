@@ -10,7 +10,12 @@ class HospitalSeeder extends Seeder
     public function run(): void
     {
         // Clear existing hospitals
-        DB::table('hospitals')->truncate();
+        \App\Models\Hospital::query()->delete();
+        
+        // Handle Postgres identity reset if needed
+        if (config('database.default') === 'pgsql') {
+            \Illuminate\Support\Facades\DB::statement('ALTER SEQUENCE hospitals_id_seq RESTART WITH 1');
+        }
 
         \App\Models\Hospital::insert([
             [
