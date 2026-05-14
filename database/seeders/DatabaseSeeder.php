@@ -17,11 +17,20 @@ class DatabaseSeeder extends Seeder
         // 1. Seed all hospitals
         $this->call(HospitalSeeder::class);
 
-        // 2. Seed demo patient user
+        // 2. Seed demo patient users
         User::updateOrCreate(
             ['email' => 'patient@jeevansetu.com'],
             [
                 'name'     => 'John Doe',
+                'password' => Hash::make('password'),
+                'role'     => 'patient',
+            ]
+        );
+
+        User::updateOrCreate(
+            ['email' => 'rajath@gmail.com'],
+            [
+                'name'     => 'Rajath',
                 'password' => Hash::make('password'),
                 'role'     => 'patient',
             ]
