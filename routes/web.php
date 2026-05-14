@@ -18,6 +18,7 @@ use App\Http\Controllers\AuthController;
 
 Route::post('/register', [AuthController::class, 'register'])->name('register.submit');
 Route::post('/verify-registration-otp', [AuthController::class, 'verifyRegistrationOtp'])->name('register.otp');
+Route::post('/resend-registration-otp', [AuthController::class, 'resendRegistrationOtp'])->name('register.resend');
 Route::post('/login', [AuthController::class, 'login'])->name('login.submit');
 Route::post('/login-otp', [AuthController::class, 'sendLoginOtp'])->name('login.otp.send');
 Route::post('/verify-login-otp', [AuthController::class, 'verifyLoginOtp'])->name('login.otp.verify');

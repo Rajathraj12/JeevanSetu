@@ -152,7 +152,7 @@
 
                         <button type="submit" id="signup-btn" class="w-full bg-brand-900 text-white font-extrabold py-4 rounded-2xl shadow-[0_20px_40px_-12px_rgba(6,26,26,0.3)] hover:shadow-[0_25px_50px_-12px_rgba(6,26,26,0.4)] hover:-translate-y-1 active:scale-95 transition-all mt-4 flex justify-center items-center gap-3 disabled:opacity-70 disabled:cursor-not-allowed">
                             <span id="signup-btn-text" class="flex items-center gap-3">
-                                Sign Up <span class="material-symbols-outlined text-[20px]">person_add</span>
+                                Verify Email <span class="material-symbols-outlined text-[20px]">verified_user</span>
                             </span>
                             <div id="signup-loader" class="hidden">
                                 <svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -190,6 +190,14 @@
                         <button onclick="handleVerifyOtp()" class="w-full bg-brand-500 text-white font-extrabold py-5 rounded-2xl shadow-xl shadow-brand-500/20 hover:-translate-y-1 transition-all">
                             Verify & Register
                         </button>
+                        
+                        <div class="mt-8 text-center">
+                            <p class="text-slate-500 text-sm font-medium mb-3">Didn't receive the code?</p>
+                            <button id="resend-btn" onclick="handleResendOtp()" class="text-brand-500 font-bold hover:text-brand-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed">
+                                Resend OTP
+                            </button>
+                            <p id="resend-timer" class="text-xs text-slate-400 mt-2 font-medium"></p>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -266,6 +274,43 @@
                     setTimeout(() => window.location.href = '{{ route('dashboard') }}', 1500);
                 } else { showToast(data.error || 'Invalid code', 'error'); }
             } catch (err) { showToast('Verification failed', 'error'); }
+        }
+
+        let resendTimer = 0;
+        async function handleResendOtp() {
+            if (resendTimer > 0) return;
+            
+            const btn = document.getElementById('resend-btn');
+            btn.disabled = true;
+
+            try {
+                const response = await fetch('{{ route('register.resend') }}', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' }
+                });
+                const data = await response.json();
+                if (data.success) {
+                    showToast('New code sent!');
+                    startTimer(30);
+                } else { showToast(data.error || 'Failed to resend', 'error'); btn.disabled = false; }
+            } catch (err) { showToast('Connection error', 'error'); btn.disabled = false; }
+        }
+
+        function startTimer(seconds) {
+            resendTimer = seconds;
+            const btn = document.getElementById('resend-btn');
+            const timerText = document.getElementById('resend-timer');
+            btn.disabled = true;
+            
+            const interval = setInterval(() => {
+                resendTimer--;
+                timerText.textContent = `You can resend in ${resendTimer}s`;
+                if (resendTimer <= 0) {
+                    clearInterval(interval);
+                    timerText.textContent = '';
+                    btn.disabled = false;
+                }
+            }, 1000);
         }
 
         function showOtpSection() {

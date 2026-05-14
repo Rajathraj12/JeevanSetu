@@ -26,23 +26,35 @@ class AuthController extends Controller
             'registration_data' => $request->only('name', 'email', 'password', 'role')
         ]);
 
-        // Generate and send OTP
+        return $this->sendVerificationCode($request->email);
+    }
+
+    public function resendRegistrationOtp(Request $request)
+    {
+        $data = session('registration_data');
+        if (!$data) {
+            return response()->json(['error' => 'Session expired. Please start over.'], 400);
+        }
+        return $this->sendVerificationCode($data['email']);
+    }
+
+    private function sendVerificationCode($email)
+    {
         $otp = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
         
         DB::table('password_reset_tokens')->updateOrInsert(
-            ['email' => $request->email],
+            ['email' => $email],
             ['token' => Hash::make($otp), 'created_at' => Carbon::now()]
         );
 
         try {
-            Mail::raw("Welcome to JeevanSetu! Your account verification code is: $otp", function ($message) use ($request) {
-                $message->to($request->email)->subject('Verify your account - JeevanSetu');
+            Mail::raw("Welcome to JeevanSetu! Your account verification code is: $otp", function ($message) use ($email) {
+                $message->to($email)->subject('Verify your account - JeevanSetu');
             });
+            return response()->json(['success' => true]);
         } catch (\Exception $e) {
             return response()->json(['error' => 'Mail Error: ' . $e->getMessage()], 500);
         }
-
-        return response()->json(['success' => true]);
     }
 
     public function verifyRegistrationOtp(Request $request)
