@@ -3,23 +3,46 @@
 namespace Database\Seeders;
 
 use App\Models\User;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
+use App\Models\Hospital;
 use Illuminate\Database\Seeder;
+use Illuminate\Database\Console\Seeds\WithoutModelEvents;
+use Illuminate\Support\Facades\Hash;
 
 class DatabaseSeeder extends Seeder
 {
     use WithoutModelEvents;
 
-    /**
-     * Seed the application's database.
-     */
     public function run(): void
     {
-        // User::factory(10)->create();
+        // 1. Seed all hospitals
+        $this->call(HospitalSeeder::class);
 
-        User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
-        ]);
+        // 2. Seed demo patient user
+        User::updateOrCreate(
+            ['email' => 'patient@jeevansetu.com'],
+            [
+                'name'     => 'John Doe',
+                'password' => Hash::make('password'),
+                'role'     => 'patient',
+            ]
+        );
+
+        // 3. Seed hospital admin user linked to Max Hospital
+        $maxHospital = Hospital::where('name', 'like', '%Max%')->first();
+        if ($maxHospital) {
+            User::updateOrCreate(
+                ['email' => 'maxhealthcare@gmail.com'],
+                [
+                    'name'        => 'Max Admin',
+                    'password'    => Hash::make('maxhealthcare'),
+                    'role'        => 'admin',
+                    'hospital_id' => $maxHospital->id,
+                ]
+            );
+        }
+
+        // 4. Seed appointments & medical records for demo patient
+        $this->call(AppointmentSeeder::class);
+        $this->call(MedicalRecordSeeder::class);
     }
 }
