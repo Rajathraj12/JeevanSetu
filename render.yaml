@@ -40,9 +40,9 @@ services:
       - key: MAIL_HOST
         value: smtp.gmail.com
       - key: MAIL_PORT
-        value: "465"
+        value: "587"
       - key: MAIL_ENCRYPTION
-        value: ssl
+        value: tls
       - key: MAIL_USERNAME
         sync: false # Set in Render UI
       - key: MAIL_PASSWORD
