@@ -122,30 +122,30 @@ class AuthController extends Controller
 
     public function sendLoginOtp(Request $request)
     {
-        $request->validate(['email' => 'required|email']);
-        $user = User::where('email', $request->email)->first();
-
-        if (!$user) {
-            return response()->json(['error' => 'No account found with this email.'], 404);
-        }
-
-        $otp = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
-        
-        DB::table('password_reset_tokens')->updateOrInsert(
-            ['email' => $request->email],
-            ['token' => Hash::make($otp), 'created_at' => Carbon::now()]
-        );
-
         try {
+            $request->validate(['email' => 'required|email']);
+            $user = User::where('email', $request->email)->first();
+
+            if (!$user) {
+                return response()->json(['error' => 'No account found with this email.'], 404);
+            }
+
+            $otp = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+            
+            DB::table('password_reset_tokens')->updateOrInsert(
+                ['email' => $request->email],
+                ['token' => Hash::make($otp), 'created_at' => Carbon::now()]
+            );
+
             Mail::raw("Your JeevanSetu login code is: $otp", function ($message) use ($request) {
                 $message->to($request->email)->subject('Login OTP - JeevanSetu');
             });
-        } catch (\Exception $e) {
-            return response()->json(['error' => 'Failed to send OTP.'], 500);
-        }
 
-        session(['login_email' => $request->email]);
-        return response()->json(['success' => true]);
+            session(['login_email' => $request->email]);
+            return response()->json(['success' => true]);
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'Server Error: ' . $e->getMessage()], 500);
+        }
     }
 
     public function verifyLoginOtp(Request $request)
