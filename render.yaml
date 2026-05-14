@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: jeevansetu-web
+    name: jeevansetu-medical
     env: docker
     plan: free
     region: singapore # Change to your preferred region
