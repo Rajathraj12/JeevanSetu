@@ -443,6 +443,15 @@
                 signupSection.classList.add('hidden');
             }
         }
+
+        // Handle role selection from URL query parameter
+        const urlParams = new URLSearchParams(window.location.search);
+        const initialRole = urlParams.get('role');
+        if (initialRole === 'admin' || initialRole === 'hospital') {
+            switchTab('hospital');
+        } else if (initialRole === 'patient') {
+            switchTab('patient');
+        }
     </script>
 </body>
 </html>

@@ -27,52 +27,72 @@ Route::post('/forgot-password', [AuthController::class, 'sendOtp'])->name('passw
 Route::post('/verify-otp', [AuthController::class, 'verifyOtp'])->name('password.otp');
 Route::post('/reset-password', [AuthController::class, 'resetPassword'])->name('password.update');
 
-Route::get('/dashboard', function () {
-    $user = auth()->user();
-    if ($user && $user->role === 'admin') {
-        return view('hospital.dashboard', ['hospital' => $user->hospital]);
-    }
-    return view('patient.dashboard');
-})->middleware('auth')->name('dashboard');
+Route::middleware(['auth'])->group(function () {
+    Route::get('/dashboard', function () {
+        $user = auth()->user();
+        if ($user && $user->role === 'admin') {
+            return view('hospital.dashboard', ['hospital' => $user->hospital]);
+        }
+        return view('patient.dashboard');
+    })->name('dashboard');
 
-use App\Http\Controllers\OpdQueueController;
-Route::get('/opd-queue', [OpdQueueController::class, 'index'])->name('opd-queue');
+    Route::get('/bed-map', function () {
+        $user = auth()->user();
+        $hospital = $user && $user->hospital_id ? $user->hospital : null;
+        return view('hospital.bed-map', compact('hospital'));
+    })->name('bed-map');
 
-Route::get('/bed-map', function () {
-    $user = auth()->user();
-    $hospital = $user && $user->hospital_id ? $user->hospital : null;
-    return view('hospital.bed-map', compact('hospital'));
-})->middleware('auth')->name('bed-map');
+    Route::get('/admissions', function () {
+        $user = auth()->user();
+        $hospital = $user && $user->hospital_id ? $user->hospital : null;
+        return view('hospital.admissions', compact('hospital'));
+    })->name('admissions');
 
-Route::get('/admissions', function () {
-    $user = auth()->user();
-    $hospital = $user && $user->hospital_id ? $user->hospital : null;
-    return view('hospital.admissions', compact('hospital'));
-})->middleware('auth')->name('admissions');
+    Route::get('/inventory', function () {
+        $user = auth()->user();
+        $hospital = $user && $user->hospital_id ? $user->hospital : null;
+        return view('hospital.inventory', compact('hospital'));
+    })->name('inventory');
 
-Route::get('/inventory', function () {
-    $user = auth()->user();
-    $hospital = $user && $user->hospital_id ? $user->hospital : null;
-    return view('hospital.inventory', compact('hospital'));
-})->middleware('auth')->name('inventory');
+    Route::get('/doctor-schedule', function () {
+        $user = auth()->user();
+        $hospital = $user && $user->hospital_id ? $user->hospital : null;
+        return view('hospital.doctor-schedule', compact('hospital'));
+    })->name('doctor-schedule');
 
-Route::get('/doctor-schedule', function () {
-    $user = auth()->user();
-    $hospital = $user && $user->hospital_id ? $user->hospital : null;
-    return view('hospital.doctor-schedule', compact('hospital'));
-})->middleware('auth')->name('doctor-schedule');
+    Route::get('/wait-board', function () {
+        $user = auth()->user();
+        $hospital = $user && $user->hospital_id ? $user->hospital : null;
+        return view('hospital.wait-board', compact('hospital'));
+    })->name('wait-board');
 
-Route::get('/wait-board', function () {
-    $user = auth()->user();
-    $hospital = $user && $user->hospital_id ? $user->hospital : null;
-    return view('hospital.wait-board', compact('hospital'));
-})->middleware('auth')->name('wait-board');
+    Route::post('/hospital/update-status', [CityBedsController::class, 'updateStatus'])->name('hospital.update-status');
 
-use App\Http\Controllers\CityBedsController;
-Route::get('/city-beds', [CityBedsController::class, 'index'])->name('city-beds');
-Route::get('/hospital/{id}', [CityBedsController::class, 'show'])->name('hospital.show');
-Route::post('/hospital/{id}/book-bed', [CityBedsController::class, 'bookBed'])->name('hospital.book-bed');
-Route::post('/hospital/update-status', [CityBedsController::class, 'updateStatus'])->name('hospital.update-status')->middleware('auth');
+    Route::get('/profile', function () {
+        return view('placeholder', ['title' => 'My Account']);
+    })->name('profile');
+
+    Route::get('/settings', function () {
+        return view('placeholder', ['title' => 'Settings']);
+    })->name('settings');
+
+    Route::get('/support', function () {
+        return view('placeholder', ['title' => 'Help & Support']);
+    })->name('support');
+
+    Route::get('/my-appointments', [AppointmentController::class, 'index'])->name('my-appointments');
+    Route::get('/my-appointments/book', [AppointmentController::class, 'create'])->name('appointments.create');
+    Route::post('/my-appointments/book', [AppointmentController::class, 'store'])->name('appointments.store');
+    Route::post('/my-appointments/{id}/cancel', [AppointmentController::class, 'cancel'])->name('appointments.cancel');
+    Route::post('/my-appointments/{id}/reschedule', [AppointmentController::class, 'reschedule'])->name('appointments.reschedule');
+
+    Route::get('/medical-records', [MedicalRecordController::class, 'index'])->name('medical-records');
+    Route::post('/medical-records/upload', [MedicalRecordController::class, 'store'])->name('medical-records.store');
+
+    Route::get('/city-beds', [CityBedsController::class, 'index'])->name('city-beds');
+    Route::get('/hospital/{id}', [CityBedsController::class, 'show'])->name('hospital.show');
+    Route::post('/hospital/{id}/book-bed', [CityBedsController::class, 'bookBed'])->name('hospital.book-bed');
+});
 
 Route::get('/patients', function () {
     return view('placeholder', ['title' => 'Patients Portal']);
@@ -83,28 +103,8 @@ Route::get('/hospitals', function () {
 })->name('hospitals');
 
 Route::get('/find-doctor', function () {
-    return view('placeholder', ['title' => 'Find a Doctor']);
+    return view('find-doctor');
 })->name('find-doctor');
 
-Route::get('/profile', function () {
-    return view('placeholder', ['title' => 'My Account']);
-})->name('profile');
-
-Route::get('/settings', function () {
-    return view('placeholder', ['title' => 'Settings']);
-})->name('settings');
-
-Route::get('/support', function () {
-    return view('placeholder', ['title' => 'Help & Support']);
-})->name('support');
-
-use App\Http\Controllers\AppointmentController;
-Route::get('/my-appointments', [AppointmentController::class, 'index'])->name('my-appointments');
-Route::get('/my-appointments/book', [AppointmentController::class, 'create'])->name('appointments.create');
-Route::post('/my-appointments/book', [AppointmentController::class, 'store'])->name('appointments.store');
-Route::post('/my-appointments/{id}/cancel', [AppointmentController::class, 'cancel'])->name('appointments.cancel');
-Route::post('/my-appointments/{id}/reschedule', [AppointmentController::class, 'reschedule'])->name('appointments.reschedule');
-
-use App\Http\Controllers\MedicalRecordController;
-Route::get('/medical-records', [MedicalRecordController::class, 'index'])->name('medical-records');
-Route::post('/medical-records/upload', [MedicalRecordController::class, 'store'])->name('medical-records.store');
+use App\Http\Controllers\OpdQueueController;
+Route::get('/opd-queue', [OpdQueueController::class, 'index'])->name('opd-queue');
