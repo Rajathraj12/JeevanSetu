@@ -36,6 +36,15 @@ class DatabaseSeeder extends Seeder
             ]
         );
 
+        User::updateOrCreate(
+            ['email' => 'rajathclans12@gmail.com'],
+            [
+                'name'     => 'Rajath Raj',
+                'password' => Hash::make('rajath'),
+                'role'     => 'patient',
+            ]
+        );
+
         // 3. Seed hospital admin user linked to Max Hospital
         $maxHospital = Hospital::where('name', 'like', '%Max%')->first();
         if ($maxHospital) {
