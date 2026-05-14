@@ -3,6 +3,20 @@
 
 @section('content')
 <div class="flex flex-col gap-6 max-w-7xl mx-auto">
+    @if(session('success'))
+    <div class="bg-emerald-50 border border-emerald-200 text-emerald-700 px-4 py-3 rounded-xl flex items-center gap-2 shadow-sm">
+        <span class="material-symbols-outlined text-[20px]">check_circle</span>
+        <p class="font-bold text-sm">{{ session('success') }}</p>
+    </div>
+    @endif
+    
+    @if(session('error'))
+    <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl flex items-center gap-2 shadow-sm">
+        <span class="material-symbols-outlined text-[20px]">error</span>
+        <p class="font-bold text-sm">{{ session('error') }}</p>
+    </div>
+    @endif
+
     <!-- Header -->
     <div class="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-2">
         <div>
@@ -10,16 +24,21 @@
             <p class="text-[16px] text-slate-600">Real-time availability across Delhi NCR hospitals.</p>
         </div>
         
-        <div class="flex gap-3">
-            <button class="bg-white border border-slate-200 text-slate-700 font-medium py-2.5 px-4 rounded-xl flex items-center gap-2 hover:bg-slate-50 transition-colors shadow-sm">
-                All Bed Types <span class="material-symbols-outlined text-[18px]">keyboard_arrow_down</span>
-            </button>
-            <button class="bg-white border border-slate-200 text-slate-700 font-medium py-2.5 px-4 rounded-xl flex items-center gap-2 hover:bg-slate-50 transition-colors shadow-sm">
-                Any Distance <span class="material-symbols-outlined text-[18px]">keyboard_arrow_down</span>
-            </button>
-            <button class="bg-[#111827] text-white font-medium py-2.5 px-5 rounded-xl flex items-center gap-2 hover:bg-slate-800 transition-colors shadow-sm">
-                <span class="material-symbols-outlined text-[18px]">filter_list</span> More Filters
-            </button>
+        <div class="flex flex-wrap gap-3">
+            <a href="{{ route('city-beds', ['filter' => 'near_me']) }}" class="{{ $activeFilter === 'near_me' ? 'bg-[#111827] text-white' : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50' }} font-medium py-2 px-4 rounded-xl flex items-center gap-2 transition-colors shadow-sm text-sm">
+                <span class="material-symbols-outlined text-[18px]">my_location</span> Near Me
+            </a>
+            <a href="{{ route('city-beds', ['filter' => 'insurance']) }}" class="{{ $activeFilter === 'insurance' ? 'bg-[#111827] text-white' : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50' }} font-medium py-2 px-4 rounded-xl flex items-center gap-2 transition-colors shadow-sm text-sm">
+                <span class="material-symbols-outlined text-[18px]">verified_user</span> Insurance
+            </a>
+            <a href="{{ route('city-beds', ['filter' => 'rating']) }}" class="{{ $activeFilter === 'rating' ? 'bg-[#111827] text-white' : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50' }} font-medium py-2 px-4 rounded-xl flex items-center gap-2 transition-colors shadow-sm text-sm">
+                <span class="material-symbols-outlined text-[18px]">star</span> Rating
+            </a>
+            @if($activeFilter)
+                <a href="{{ route('city-beds') }}" class="text-slate-500 hover:text-[#ef4444] font-bold text-sm flex items-center gap-1 px-2">
+                    <span class="material-symbols-outlined text-[18px]">close</span> Clear
+                </a>
+            @endif
         </div>
     </div>
 
@@ -31,7 +50,7 @@
                 <span class="material-symbols-outlined text-[#10b981]">bed</span>
                 <span class="text-sm font-medium text-slate-600">Total Available (Delhi)</span>
             </div>
-            <div class="text-[42px] font-bold text-[#111827] leading-none mb-4">1,248</div>
+            <div class="text-[42px] font-bold text-[#111827] leading-none mb-4">{{ $stats['total_available'] }}</div>
             <div class="flex items-center gap-1.5 text-sm">
                 <span class="text-[#10b981] flex items-center font-bold">
                     <span class="material-symbols-outlined text-[16px]">arrow_upward</span> 12%
@@ -46,7 +65,7 @@
                 <span class="material-symbols-outlined text-[#ef4444]">monitor_heart</span>
                 <span class="text-sm font-medium text-slate-600">ICU Beds Critical</span>
             </div>
-            <div class="text-[42px] font-bold text-[#111827] leading-none mb-4">84</div>
+            <div class="text-[42px] font-bold text-[#111827] leading-none mb-4">{{ $stats['icu_critical'] }}</div>
             <div class="flex items-center gap-1.5 text-sm">
                 <span class="text-[#ef4444] flex items-center font-bold">
                     <span class="material-symbols-outlined text-[16px]">warning</span> High demand alert
@@ -73,7 +92,6 @@
         <div class="lg:col-span-2 flex flex-col gap-5">
             <div class="flex justify-between items-center mb-1">
                 <h3 class="text-xl font-bold text-[#111827]">Regional Hospitals</h3>
-                <a href="#" class="text-[#0d9488] font-semibold text-sm hover:underline">View Map</a>
             </div>
 
             @foreach($hospitals as $hospital)
@@ -239,7 +257,7 @@
                 <span class="material-symbols-outlined">close</span>
             </button>
         </div>
-        <form id="transfer-form" action="/hospital/__ID__/book-bed" method="POST" class="p-6 flex flex-col gap-4">
+        <form id="transfer-form" action="{{ route('hospital.book-bed', '__ID__') }}" method="POST" class="p-6 flex flex-col gap-4">
             @csrf
             <div class="bg-blue-50 border border-blue-200 rounded-xl p-3 flex gap-3 text-sm text-blue-700">
                 <span class="material-symbols-outlined shrink-0 text-blue-400">info</span>

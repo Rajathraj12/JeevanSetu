@@ -78,26 +78,26 @@
                     Quick Actions
                 </h3>
                 <div class="flex flex-col gap-4">
-                    <button onclick="alert('Calling next token: T-85 to OPD Room 1');" class="w-full bg-secondary hover:bg-secondary/90 text-white py-3 px-4 rounded-lg flex items-center justify-between transition-colors group">
+                    <button onclick="callNextToken()" class="w-full bg-secondary hover:bg-secondary/90 text-white py-3 px-4 rounded-lg flex items-center justify-between transition-colors group">
                         <div class="flex items-center gap-3">
                             <span class="material-symbols-outlined">record_voice_over</span>
                             <span class="text-label-md font-bold">Call Next Token</span>
                         </div>
                         <span class="material-symbols-outlined group-hover:translate-x-1 transition-transform">arrow_forward</span>
                     </button>
-                    <button onclick="alert('Opening Add Medicine dialog...');" class="w-full border-2 border-primary-container text-primary-container hover:bg-primary-container hover:text-white py-3 px-4 rounded-lg flex items-center justify-between transition-colors group">
+                    <button onclick="openMedicineModal()" class="w-full border-2 border-primary-container text-primary-container hover:bg-primary-container hover:text-white py-3 px-4 rounded-lg flex items-center justify-between transition-colors group">
                         <div class="flex items-center gap-3">
                             <span class="material-symbols-outlined">medication</span>
                             <span class="text-label-md font-bold">Add Medicine</span>
                         </div>
                         <span class="material-symbols-outlined group-hover:translate-x-1 transition-transform">add</span>
                     </button>
-                    <button onclick="alert('Approved the next admission in queue.');" class="w-full bg-surface-container hover:bg-surface-variant text-on-surface py-3 px-4 rounded-lg flex items-center justify-between transition-colors border border-outline-variant/30">
+                    <button onclick="approveAdmission()" class="w-full bg-surface-container hover:bg-surface-variant text-on-surface py-3 px-4 rounded-lg flex items-center justify-between transition-colors border border-outline-variant/30">
                         <div class="flex items-center gap-3">
                             <span class="material-symbols-outlined text-secondary">how_to_reg</span>
                             <span class="text-label-md font-bold">Approve Admission</span>
                         </div>
-                        <span class="bg-secondary text-white text-[10px] font-bold px-2 py-0.5 rounded-full">12 Pending</span>
+                        <span id="pending-count-badge" class="bg-secondary text-white text-[10px] font-bold px-2 py-0.5 rounded-full">12 Pending</span>
                     </button>
                 </div>
             </div>
@@ -146,4 +146,119 @@
         </div>
     </div>
 </div>
+
+<!-- Add Medicine Modal -->
+<div id="medicine-modal" class="fixed inset-0 z-[60] hidden">
+    <div class="absolute inset-0 bg-on-surface/40 backdrop-blur-sm" onclick="closeMedicineModal()"></div>
+    <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md bg-white rounded-2xl shadow-2xl p-6 overflow-hidden">
+        <div class="flex justify-between items-center mb-6">
+            <h3 class="text-headline-sm font-bold text-on-surface">Add New Medicine</h3>
+            <button onclick="closeMedicineModal()" class="p-2 hover:bg-surface-container-low rounded-full transition-colors">
+                <span class="material-symbols-outlined">close</span>
+            </button>
+        </div>
+        
+        <form onsubmit="saveMedicine(event)" class="flex flex-col gap-4">
+            <div>
+                <label class="text-label-sm font-medium text-on-surface-variant block mb-1.5">Medicine Name</label>
+                <input type="text" required placeholder="e.g. Paracetamol 500mg" class="w-full px-4 py-2 rounded-lg border border-outline-variant focus:outline-none focus:border-secondary transition-colors">
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="text-label-sm font-medium text-on-surface-variant block mb-1.5">Quantity</label>
+                    <input type="number" required placeholder="0" class="w-full px-4 py-2 rounded-lg border border-outline-variant focus:outline-none focus:border-secondary transition-colors">
+                </div>
+                <div>
+                    <label class="text-label-sm font-medium text-on-surface-variant block mb-1.5">Unit</label>
+                    <select class="w-full px-4 py-2 rounded-lg border border-outline-variant focus:outline-none focus:border-secondary transition-colors bg-white">
+                        <option>Strips</option>
+                        <option>Bottles</option>
+                        <option>Injectables</option>
+                        <option>Boxes</option>
+                    </select>
+                </div>
+            </div>
+            <div>
+                <label class="text-label-sm font-medium text-on-surface-variant block mb-1.5">Expiry Date</label>
+                <input type="date" required class="w-full px-4 py-2 rounded-lg border border-outline-variant focus:outline-none focus:border-secondary transition-colors">
+            </div>
+            
+            <button type="submit" class="w-full bg-secondary text-white py-3 rounded-lg font-bold mt-2 hover:bg-secondary/90 transition-colors">
+                Save to Inventory
+            </button>
+        </form>
+    </div>
+</div>
+
+@push('scripts')
+<script>
+    let currentToken = 84;
+    let pendingAdmissions = 12;
+
+    function callNextToken() {
+        currentToken++;
+        showToast(`Calling Token T-${currentToken} to OPD Room 1`, 'info');
+        
+        // Add to recent activity (visual only)
+        const activityList = document.querySelector('.divide-y');
+        const newActivity = document.createElement('div');
+        newActivity.className = 'py-4 flex items-start gap-4 animate-pulse';
+        newActivity.innerHTML = `
+            <div class="p-2 bg-blue-100 rounded-full text-blue-700 shrink-0">
+                <span class="material-symbols-outlined">campaign</span>
+            </div>
+            <div>
+                <p class="text-body-md text-on-surface"><span class="font-bold">Token Called:</span> Token T-${currentToken} called to OPD Room 1.</p>
+                <p class="text-label-sm text-on-surface-variant mt-1">Just now • Auto-System</p>
+            </div>
+        `;
+        activityList.prepend(newActivity);
+        setTimeout(() => newActivity.classList.remove('animate-pulse'), 1000);
+    }
+
+    function approveAdmission() {
+        if (pendingAdmissions > 0) {
+            pendingAdmissions--;
+            document.getElementById('pending-count-badge').innerText = `${pendingAdmissions} Pending`;
+            showToast('Admission approved successfully!', 'success');
+            
+            // Add to recent activity
+            const activityList = document.querySelector('.divide-y');
+            const newActivity = document.createElement('div');
+            newActivity.className = 'py-4 flex items-start gap-4 animate-pulse';
+            newActivity.innerHTML = `
+                <div class="p-2 bg-green-100 rounded-full text-green-700 shrink-0">
+                    <span class="material-symbols-outlined">check_circle</span>
+                </div>
+                <div>
+                    <p class="text-body-md text-on-surface"><span class="font-bold">Admission Approved:</span> New patient assigned to Ward A.</p>
+                    <p class="text-label-sm text-on-surface-variant mt-1">Just now • by Admin</p>
+                </div>
+            `;
+            activityList.prepend(newActivity);
+            setTimeout(() => newActivity.classList.remove('animate-pulse'), 1000);
+        } else {
+            showToast('No pending admissions in queue.', 'info');
+        }
+    }
+
+    function openMedicineModal() {
+        document.getElementById('medicine-modal').classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeMedicineModal() {
+        document.getElementById('medicine-modal').classList.add('hidden');
+        document.body.style.overflow = 'auto';
+    }
+
+    function saveMedicine(e) {
+        e.preventDefault();
+        const medicineName = e.target.querySelector('input[type="text"]').value;
+        showToast(`${medicineName} added to inventory!`, 'success');
+        closeMedicineModal();
+        e.target.reset();
+    }
+</script>
+@endpush
 @endsection

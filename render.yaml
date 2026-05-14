@@ -1,0 +1,54 @@
+services:
+  - type: web
+    name: jeevansetu-web
+    env: docker
+    plan: free
+    region: singapore # Change to your preferred region
+    healthCheckPath: /
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: APP_DEBUG
+        value: false
+      - key: APP_KEY
+        generateValue: true
+      - key: DB_CONNECTION
+        value: pgsql
+      - key: DB_HOST
+        fromDatabase:
+          name: jeevansetu-db
+          property: host
+      - key: DB_PORT
+        fromDatabase:
+          name: jeevansetu-db
+          property: port
+      - key: DB_DATABASE
+        fromDatabase:
+          name: jeevansetu-db
+          property: database
+      - key: DB_USERNAME
+        fromDatabase:
+          name: jeevansetu-db
+          property: user
+      - key: DB_PASSWORD
+        fromDatabase:
+          name: jeevansetu-db
+          property: password
+      # Mail Configuration (You should set these as secrets in Render UI later)
+      - key: MAIL_MAILER
+        value: smtp
+      - key: MAIL_HOST
+        value: smtp.gmail.com
+      - key: MAIL_PORT
+        value: "465"
+      - key: MAIL_ENCRYPTION
+        value: ssl
+      - key: MAIL_USERNAME
+        sync: false # Set in Render UI
+      - key: MAIL_PASSWORD
+        sync: false # Set in Render UI
+
+databases:
+  - name: jeevansetu-db
+    plan: free
+    region: singapore

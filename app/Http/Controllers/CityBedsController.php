@@ -25,20 +25,26 @@ class CityBedsController extends Controller
         }
 
         $hospitals = $query->get();
+        
+        // Calculate dynamic stats
+        $totalAvailable = $hospitals->sum(function($h) {
+            return $h->icu_beds_available + $h->emergency_beds_available + $h->general_beds_available;
+        });
+        
+        $icuCritical = $hospitals->where('icu_beds_available', '<=', 2)->count();
+
         $user = auth()->user();
         $role = $user ? $user->role : session('role', 'patient');
         
-        if ($role === 'admin') {
-            return view('hospital.city-beds', [
-                'hospitals' => $hospitals,
-                'role' => $role,
-                'activeFilter' => $filter
-            ]);
-        }
-        return view('patient.city-beds', [
+        // Use the unified view for both roles
+        return view('hospital.city-beds', [
             'hospitals' => $hospitals,
             'role' => $role,
-            'activeFilter' => $filter
+            'activeFilter' => $filter,
+            'stats' => [
+                'total_available' => number_format($totalAvailable),
+                'icu_critical' => $icuCritical
+            ]
         ]);
     }
 
@@ -65,5 +71,39 @@ class CityBedsController extends Controller
         }
 
         return redirect()->route('city-beds')->with('success', "Successfully booked a {$type} bed at {$hospital->name}. Please proceed to the hospital immediately.");
+    }
+
+    public function updateStatus(Request $request)
+    {
+        $user = auth()->user();
+        if (!$user || !$user->hospital_id) {
+            return response()->json(['error' => 'Unauthorized'], 401);
+        }
+
+        $hospital = $user->hospital;
+        $ward = $request->input('ward'); // ICU, EMG, GEN
+        $action = $request->input('action'); // increment, decrement
+
+        $column = match($ward) {
+            'ICU' => 'icu_beds_available',
+            'EMG' => 'emergency_beds_available',
+            'GEN' => 'general_beds_available',
+            default => null
+        };
+
+        if (!$column) {
+            return response()->json(['error' => 'Invalid ward'], 400);
+        }
+
+        if ($action === 'increment') {
+            $hospital->increment($column);
+        } else {
+            // Prevent going below 0
+            if ($hospital->$column > 0) {
+                $hospital->decrement($column);
+            }
+        }
+
+        return response()->json(['success' => true, 'new_count' => $hospital->$column]);
     }
 }

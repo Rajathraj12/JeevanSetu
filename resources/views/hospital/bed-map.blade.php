@@ -34,21 +34,21 @@
         <div class="bg-white rounded-xl border border-slate-200 p-4 text-center shadow-sm">
             <p class="text-xs font-bold text-slate-500 uppercase mb-1">Total Beds</p>
             <p class="text-3xl font-bold text-slate-900">{{ $totalAll }}</p>
-            <p class="text-xs text-emerald-600 font-bold mt-1">{{ $availAll }} Available</p>
+            <p class="text-xs text-emerald-600 font-bold mt-1"><span id="summary-all-avail">{{ $availAll }}</span> Available</p>
         </div>
         <div class="bg-red-50 rounded-xl border border-red-100 p-4 text-center shadow-sm">
             <p class="text-xs font-bold text-red-500 uppercase mb-1">ICU Ward</p>
-            <p class="text-3xl font-bold text-red-700">{{ $availIcu }}<span class="text-sm font-normal text-slate-400">/{{ $totalIcu }}</span></p>
+            <p class="text-3xl font-bold text-red-700"><span id="summary-icu-avail">{{ $availIcu }}</span><span class="text-sm font-normal text-slate-400">/{{ $totalIcu }}</span></p>
             <p class="text-xs text-slate-500 mt-1">Available</p>
         </div>
         <div class="bg-teal-50 rounded-xl border border-teal-100 p-4 text-center shadow-sm">
             <p class="text-xs font-bold text-teal-600 uppercase mb-1">Emergency</p>
-            <p class="text-3xl font-bold text-teal-700">{{ $availEmg }}<span class="text-sm font-normal text-slate-400">/{{ $totalEmg }}</span></p>
+            <p class="text-3xl font-bold text-teal-700"><span id="summary-emg-avail">{{ $availEmg }}</span><span class="text-sm font-normal text-slate-400">/{{ $totalEmg }}</span></p>
             <p class="text-xs text-slate-500 mt-1">Available</p>
         </div>
         <div class="bg-slate-50 rounded-xl border border-slate-200 p-4 text-center shadow-sm">
             <p class="text-xs font-bold text-slate-500 uppercase mb-1">General Ward</p>
-            <p class="text-3xl font-bold text-slate-800">{{ $availGen }}<span class="text-sm font-normal text-slate-400">/{{ $totalGen }}</span></p>
+            <p class="text-3xl font-bold text-slate-800"><span id="summary-gen-avail">{{ $availGen }}</span><span class="text-sm font-normal text-slate-400">/{{ $totalGen }}</span></p>
             <p class="text-xs text-slate-500 mt-1">Available</p>
         </div>
     </div>
@@ -65,6 +65,8 @@
                 @php $status = $i <= $availIcu ? 'available' : ($i <= $totalIcu - 2 ? 'occupied' : 'cleaning'); @endphp
                 <button
                     onclick="openBedModal('ICU-{{ sprintf('%02d', $i) }}', '{{ $status }}')"
+                    data-ward="ICU"
+                    data-status="{{ $status }}"
                     class="bed-cell aspect-square rounded-xl flex flex-col items-center justify-center gap-1 text-xs font-bold border-2 transition-all hover:scale-105 hover:shadow-md cursor-pointer
                         {{ $status === 'available' ? 'bg-emerald-50 border-emerald-300 text-emerald-700' : '' }}
                         {{ $status === 'occupied' ? 'bg-red-50 border-red-300 text-red-700' : '' }}
@@ -92,6 +94,8 @@
                 @php $status = $i <= $availEmg ? 'available' : ($i <= $totalEmg - 1 ? 'occupied' : 'maintenance'); @endphp
                 <button
                     onclick="openBedModal('EMG-{{ sprintf('%02d', $i) }}', '{{ $status }}')"
+                    data-ward="EMG"
+                    data-status="{{ $status }}"
                     class="bed-cell aspect-square rounded-xl flex flex-col items-center justify-center gap-1 text-xs font-bold border-2 transition-all hover:scale-105 hover:shadow-md cursor-pointer
                         {{ $status === 'available' ? 'bg-emerald-50 border-emerald-300 text-emerald-700' : '' }}
                         {{ $status === 'occupied' ? 'bg-red-50 border-red-300 text-red-700' : '' }}
@@ -124,6 +128,8 @@
                 @endphp
                 <button
                     onclick="openBedModal('GEN-{{ sprintf('%02d', $i) }}', '{{ $status }}')"
+                    data-ward="GEN"
+                    data-status="{{ $status }}"
                     class="bed-cell aspect-square rounded-xl flex flex-col items-center justify-center gap-1 text-xs font-bold border-2 transition-all hover:scale-105 hover:shadow-md cursor-pointer
                         {{ $status === 'available' ? 'bg-emerald-50 border-emerald-300 text-emerald-700' : '' }}
                         {{ $status === 'occupied' ? 'bg-red-50 border-red-300 text-red-700' : '' }}
@@ -201,6 +207,9 @@ function closeBedModal() {
 function updateBedStatus(newStatus) {
     if (!currentBedId || !currentBedButton) return;
 
+    const oldStatus = currentBedButton.getAttribute('data-status');
+    const ward = currentBedButton.getAttribute('data-ward');
+
     // Color & icon maps
     const config = {
         available:   { cls: 'bg-emerald-50 border-emerald-300 text-emerald-700', icon: 'check_circle' },
@@ -219,16 +228,46 @@ function updateBedStatus(newStatus) {
     // Apply new classes
     config[newStatus].cls.split(' ').forEach(c => currentBedButton.classList.add(c));
 
+    // Update data attribute & onclick
+    currentBedButton.setAttribute('data-status', newStatus);
+    currentBedButton.setAttribute('onclick', `openBedModal('${currentBedId}', '${newStatus}')`);
+
     // Update icon
     const icon = currentBedButton.querySelector('.material-symbols-outlined');
     if (icon) icon.textContent = config[newStatus].icon;
 
+    // --- Sync with Database ---
+    if (oldStatus !== newStatus) {
+        let action = null;
+        if (oldStatus === 'available' && newStatus !== 'available') {
+            action = 'decrement';
+        } else if (oldStatus !== 'available' && newStatus === 'available') {
+            action = 'increment';
+        }
+
+        if (action) {
+            fetch('{{ route('hospital.update-status') }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                },
+                body: JSON.stringify({ ward, action })
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('DB Synced:', data);
+            })
+            .catch(error => console.error('Error syncing bed status:', error));
+        }
+    }
+
+    // Recalculate summary counts (UI Only)
+    updateSummaryCounts();
+
     // Update modal current status label
     document.getElementById('modal-current-status').textContent =
         newStatus.charAt(0).toUpperCase() + newStatus.slice(1);
-
-    // Update onclick attribute so re-opening shows correct status
-    currentBedButton.setAttribute('onclick', `openBedModal('${currentBedId}', '${newStatus}')`);
 
     // Show success message
     const successEl = document.getElementById('modal-success');
@@ -238,6 +277,27 @@ function updateBedStatus(newStatus) {
 
     // Auto close after 1.2s
     setTimeout(closeBedModal, 1200);
+}
+
+function updateSummaryCounts() {
+    const allBeds = document.querySelectorAll('.bed-cell');
+    let icuAvail = 0;
+    let emgAvail = 0;
+    let genAvail = 0;
+
+    allBeds.forEach(bed => {
+        if (bed.getAttribute('data-status') === 'available') {
+            const ward = bed.getAttribute('data-ward');
+            if (ward === 'ICU') icuAvail++;
+            else if (ward === 'EMG') emgAvail++;
+            else if (ward === 'GEN') genAvail++;
+        }
+    });
+
+    document.getElementById('summary-icu-avail').textContent = icuAvail;
+    document.getElementById('summary-emg-avail').textContent = emgAvail;
+    document.getElementById('summary-gen-avail').textContent = genAvail;
+    document.getElementById('summary-all-avail').textContent = icuAvail + emgAvail + genAvail;
 }
 
 // Close on backdrop click

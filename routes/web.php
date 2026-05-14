@@ -17,8 +17,14 @@ Route::get('/register', function () {
 use App\Http\Controllers\AuthController;
 
 Route::post('/register', [AuthController::class, 'register'])->name('register.submit');
+Route::post('/verify-registration-otp', [AuthController::class, 'verifyRegistrationOtp'])->name('register.otp');
 Route::post('/login', [AuthController::class, 'login'])->name('login.submit');
+Route::post('/login-otp', [AuthController::class, 'sendLoginOtp'])->name('login.otp.send');
+Route::post('/verify-login-otp', [AuthController::class, 'verifyLoginOtp'])->name('login.otp.verify');
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
+Route::post('/forgot-password', [AuthController::class, 'sendOtp'])->name('password.email');
+Route::post('/verify-otp', [AuthController::class, 'verifyOtp'])->name('password.otp');
+Route::post('/reset-password', [AuthController::class, 'resetPassword'])->name('password.update');
 
 Route::get('/dashboard', function () {
     $user = auth()->user();
@@ -65,6 +71,7 @@ use App\Http\Controllers\CityBedsController;
 Route::get('/city-beds', [CityBedsController::class, 'index'])->name('city-beds');
 Route::get('/hospital/{id}', [CityBedsController::class, 'show'])->name('hospital.show');
 Route::post('/hospital/{id}/book-bed', [CityBedsController::class, 'bookBed'])->name('hospital.book-bed');
+Route::post('/hospital/update-status', [CityBedsController::class, 'updateStatus'])->name('hospital.update-status')->middleware('auth');
 
 Route::get('/patients', function () {
     return view('placeholder', ['title' => 'Patients Portal']);

@@ -60,6 +60,9 @@
 </head>
 <body class="bg-background text-on-background font-body-md min-h-screen flex">
     
+    <!-- Toast Container -->
+    <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col gap-3"></div>
+
     @include('partials.sidebar')
 
     <!-- Main Content Canvas -->
@@ -83,6 +86,33 @@
                 });
             }
         });
+
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            
+            const bgColor = type === 'success' ? 'bg-secondary' : (type === 'error' ? 'bg-error' : 'bg-primary-container');
+            const icon = type === 'success' ? 'check_circle' : (type === 'error' ? 'error' : 'info');
+
+            toast.className = `${bgColor} text-white px-6 py-3 rounded-lg shadow-lg flex items-center gap-3 transform translate-y-10 opacity-0 transition-all duration-300 ease-out`;
+            toast.innerHTML = `
+                <span class="material-symbols-outlined">${icon}</span>
+                <span class="text-label-md font-medium">${message}</span>
+            `;
+
+            container.appendChild(toast);
+
+            // Animate in
+            setTimeout(() => {
+                toast.classList.remove('translate-y-10', 'opacity-0');
+            }, 10);
+
+            // Remove after 3 seconds
+            setTimeout(() => {
+                toast.classList.add('opacity-0');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
     </script>
     @stack('scripts')
 </body>
