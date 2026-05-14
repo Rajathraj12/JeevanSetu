@@ -92,19 +92,19 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/city-beds', [CityBedsController::class, 'index'])->name('city-beds');
     Route::get('/hospital/{id}', [CityBedsController::class, 'show'])->name('hospital.show');
     Route::post('/hospital/{id}/book-bed', [CityBedsController::class, 'bookBed'])->name('hospital.book-bed');
+
+    Route::get('/patients', function () {
+        return view('placeholder', ['title' => 'Patients Portal']);
+    })->name('patients');
+
+    Route::get('/hospitals', function () {
+        return view('placeholder', ['title' => 'Hospitals Network']);
+    })->name('hospitals');
+
+    Route::get('/find-doctor', function () {
+        return view('find-doctor');
+    })->name('find-doctor');
 });
-
-Route::get('/patients', function () {
-    return view('placeholder', ['title' => 'Patients Portal']);
-})->name('patients');
-
-Route::get('/hospitals', function () {
-    return view('placeholder', ['title' => 'Hospitals Network']);
-})->name('hospitals');
-
-Route::get('/find-doctor', function () {
-    return view('find-doctor');
-})->name('find-doctor');
 
 use App\Http\Controllers\OpdQueueController;
 Route::get('/opd-queue', [OpdQueueController::class, 'index'])->name('opd-queue');
