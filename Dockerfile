@@ -1,15 +1,19 @@
-# Stage 1: Build Assets
+# Stage 1: Build Front-End Assets
 FROM node:20-slim AS assets-builder
 WORKDIR /app
 COPY package*.json ./
-RUN npm install
+RUN npm ci
 COPY . .
 RUN npm run build
 
-# Stage 2: Production PHP
+# Stage 2: Production PHP App
 FROM php:8.3-apache
 
-# Install system dependencies
+# Set Composer environment variables to avoid permission/memory issues
+ENV COMPOSER_ALLOW_SUPERUSER=1
+ENV COMPOSER_MEMORY_LIMIT=-1
+
+# Install system dependencies + PHP extensions
 RUN apt-get update && apt-get install -y \
     git \
     curl \
@@ -24,35 +28,42 @@ RUN apt-get update && apt-get install -y \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Install Composer
-COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
 # Set working directory
 WORKDIR /var/www/html
 
-# Copy project files
+# Copy composer files first (layer caching)
+COPY composer.json composer.lock ./
+
+# Install PHP dependencies (ignore platform reqs to avoid version conflicts)
+RUN composer install \
+    --no-dev \
+    --no-scripts \
+    --no-autoloader \
+    --ignore-platform-reqs \
+    --no-interaction \
+    --prefer-dist
+
+# Copy all project files
 COPY . .
 
-# Copy built assets from assets-builder stage
+# Copy built front-end assets from Stage 1
 COPY --from=assets-builder /app/public/build ./public/build
 
-# Install PHP dependencies
-RUN composer install --no-dev --optimize-autoloader --no-interaction
+# Run autoloader dump after full copy
+RUN composer dump-autoload --optimize --no-interaction --ignore-platform-reqs
 
 # Set correct permissions
 RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache \
     && chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache
 
-# Configure Apache to use Laravel's public folder
+# Enable Apache mod_rewrite and point to public folder
 RUN sed -i 's|/var/www/html|/var/www/html/public|g' /etc/apache2/sites-available/000-default.conf \
     && a2enmod rewrite
 
-# Setup deployment script
-RUN echo '#!/bin/bash\n\
-php artisan migrate --force\n\
-php artisan config:cache\n\
-php artisan route:cache\n\
-php artisan view:cache\n\
-apache2-foreground' > /usr/local/bin/deploy.sh \
+# Create deployment entrypoint script
+RUN printf '#!/bin/bash\nset -e\nphp artisan migrate --force\nphp artisan config:cache\nphp artisan route:cache\nphp artisan view:cache\napache2-foreground\n' > /usr/local/bin/deploy.sh \
     && chmod +x /usr/local/bin/deploy.sh
 
 EXPOSE 80
